@@ -20,8 +20,8 @@ def statio_test_funct(x, timeFrequencyRepresentation, numberOfSurrogates, Nh0):
         Nh = int((2*np.round(Nx*Nh0/2)) - 1)
         nFFT = int(np.power(2, np.ceil(np.log2(Nh))))
         dt = np.floor((Nh+1)/8)
-        sides = (Nh+1)/2
-        tt = np.arange(sides, Nx - sides, dt)
+        sides = int((Nh+1)/2)
+        tt = np.arange(sides, Nx - sides, dt, dtype=int)
         ttred = tt
         Mh = 5
         tm = 5
@@ -42,10 +42,17 @@ def statio_test_funct(x, timeFrequencyRepresentation, numberOfSurrogates, Nh0):
     INS = 1
     return INS
 
-def tfrsp_hm(x, y, nFFT, Nh, M, tm):
+def tfrsp_hm(x, t, nFFT, Nh, M, tm):
     
     h, Dh, tt = hermf(Nh, M, tm)
-    print("Aqui")
+    
+    S = np.zeros((Nh, M, tm))
+
+    for k in range(M):
+        spt = tfrsp_h(x, t, nFFT, h[k, :], Dh[k, :])
+        S[:, :, k] = spt
+    
+    return S
     
     
 def hermf(N, M, tm):
@@ -73,6 +80,45 @@ def hermf(N, M, tm):
         
     return h, Dh, tt
         
+def tfrsp_h(x, t, nFFT, h, Dh):
+    
+    xrow = x.shape[0]
+    hlength = int(np.floor(nFFT/4))
+    hlength = int(hlength + 1 - math.remainder(hlength, 2))
+    tcol = len(t)
+    hrow = len(h)
+    Lh = (hrow-1)/2
+    
+    if tcol == 1:
+        Dt = 1
+    else:
+        Deltat = t[1:tcol] - t[0:tcol-1]
+        Mini = np.min(Deltat)
+        Maxi = np.max(Deltat)
+        
+        if Mini != Maxi:
+            raise Exception("The time instants must be regularly sampled.")
+        else:
+            Dt = Mini
+            
+    S = np.zeros((nFFT, tcol))
+    tf2 = np.zeros((nFFT, tcol))
+    tf3 = np.zeros((nFFT, tcol))
+    
+    for icol in range(tcol):
+        ti = t[icol]
+        tau = np.arange(-min([np.round(nFFT/2)-1, Lh, ti-1]), min([np.round(nFFT/2)-1, Lh, xrow-ti]) + 1, dtype=int)
+        indices = np.remainder(nFFT+tau, nFFT) + 1
+        norm_h = np.norm(h[int(Lh) + tau])
+        pass
+    
+    
+        
+        
+    
+    
+    return 0
+
 
 def ins(inputData, **kwargs):
     
