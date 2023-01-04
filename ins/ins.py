@@ -9,6 +9,7 @@ Created on Mon Dec 26 15:37:55 2022
 import math
 import numpy as np
 from scipy.signal import hilbert
+import scipy.fft
 from . import utils
 
 def statio_test_funct(x, timeFrequencyRepresentation, numberOfSurrogates, Nh0):
@@ -37,6 +38,7 @@ def statio_test_funct(x, timeFrequencyRepresentation, numberOfSurrogates, Nh0):
     
     if timeFrequencyRepresentation == "mtfr":
         MSp = tfrsp_hm(hilbert(x), tt, nFFT, Nh, Mh, tm)
+        tfrx = mean_htm5(MSp, opt1)
         print("aqui")
     
     INS = 1
@@ -46,7 +48,7 @@ def tfrsp_hm(x, t, nFFT, Nh, M, tm):
     
     h, Dh, tt = hermf(Nh, M, tm)
     
-    S = np.zeros((Nh, M, tm))
+    S = np.zeros((nFFT, len(t), M))
 
     for k in range(M):
         spt = tfrsp_h(x, t, nFFT, h[k, :], Dh[k, :])
@@ -101,24 +103,32 @@ def tfrsp_h(x, t, nFFT, h, Dh):
         else:
             Dt = Mini
             
-    S = np.zeros((nFFT, tcol))
-    tf2 = np.zeros((nFFT, tcol))
-    tf3 = np.zeros((nFFT, tcol))
+    S = np.zeros((nFFT, tcol), dtype=np.cfloat)
+    #tf2 = np.zeros((nFFT, tcol))
+    #tf3 = np.zeros((nFFT, tcol))
+    
+    #Th = np.multiply(h, np.arange(-int(Lh), int(Lh) + 1))
     
     for icol in range(tcol):
         ti = t[icol]
         tau = np.arange(-min([np.round(nFFT/2)-1, Lh, ti-1]), min([np.round(nFFT/2)-1, Lh, xrow-ti]) + 1, dtype=int)
-        indices = np.remainder(nFFT+tau, nFFT) + 1
-        norm_h = np.norm(h[int(Lh) + tau])
-        pass
-    
-    
+        indices = np.remainder(nFFT+tau, nFFT)
+        norm_h = np.linalg.norm(h[int(Lh) + tau])
+        S[indices, icol] = np.multiply(x[ti + tau - 1], np.conj(h[int(Lh) + tau])) / norm_h
+        #tf2[indices, icol] = np.multiply(x[ti + tau - 1], np.conj(Th[int(Lh) + tau])) / norm_h
+        #tf3[indices, icol] = np.multiply(x[ti + tau - 1], np.conj(Dh[int(Lh) + tau])) / norm_h
         
-        
-    
-    
-    return 0
+    S_fft = scipy.fft.fft(S,axis=0)
+    S_abs = np.power(np.absolute(S_fft), 2)
+           
+    return S_abs
 
+
+def mean_htm5(S, opt):
+    if opt == 1:
+        Sm = np.mean(S, axis=2)
+        
+    return Sm
 
 def ins(inputData, **kwargs):
     
