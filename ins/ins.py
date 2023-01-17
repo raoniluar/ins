@@ -39,7 +39,9 @@ def statio_test_funct(x, timeFrequencyRepresentation, numberOfSurrogates, Nh0):
     if timeFrequencyRepresentation == "mtfr":
         MSp = tfrsp_hm(hilbert(x), tt, nFFT, Nh, Mh, tm)
         tfrx = mean_htm5(MSp, opt1)
-        print("aqui")
+    
+    tfr = tfrx[:int(nFFT/2)]
+    theta1, Cn_dist, Cn_mean = statio_test_theta(tfr, ttred, opt_dist)
     
     INS = 1
     return INS
@@ -127,8 +129,45 @@ def tfrsp_h(x, t, nFFT, h, Dh):
 def mean_htm5(S, opt):
     if opt == 1:
         Sm = np.mean(S, axis=2)
-        
+    elif opt == 2:
+        precision = 1e-14
+        Sm = np.exp(np.mean(np.log(np.maximum(S, precision)) , axis=2))
+    elif opt == 3:
+        Sm = np.min(S, axis=2)
     return Sm
+
+def statio_test_theta(tfr, tt2, opt_dist, a=0, b=0.5):
+    l, c = tfr.shape
+    Cn_dist = dist_locvsglob(tfr,tt2,opt_dist,a,b)
+    
+    print("aqui")
+    return theta, Cn_dist, Cn_mean
+
+def dist_locvsglob(S,t,opt2,a=0,b=0.5,Lambda=1):
+    
+    q = 2
+    nFFTover2, Nx = S.shape
+    B = np.arange((a*nFFTover2*2),(np.round(b*nFFTover2*2)), dtype=int)
+    ymargS = np.mean(S, axis=1)
+    
+    if opt2 == 1:
+        ymargSN = ymargS/np.sum(ymargS)
+    else:
+        ymargSN = np.abs(ymargS)/np.sum(np.abs(ymargS))
+    
+    dS = np.zeros((len(t), 1))
+    
+    for n in range(len(t)):
+        ytapS = S[:,n]
+        
+        if opt2 == 1:
+            ytapSN = ytapS/np.sum(ytapS)
+            dS[n] = np.power( np.sum( np.power( np.abs(ymargSN[B,:] - ytapSN[B,:]), 1/q) ), 1/q)
+        elif opt2 == 8:
+            ytapSN = np.abs(ytapS)/np.sum(np.abs(ytapS))
+            dS[n] = np.multiply( np.sum( np.multiply( ytapSN-ymargSN , np.log( np.divide(ytapSN, ymargSN ) ) )) , 1 + Lambda*np.sum( np.abs( np.log( np.divide(ytapS, ymargS) ) ) ))
+
+    return dS
 
 def ins(inputData, **kwargs):
     
