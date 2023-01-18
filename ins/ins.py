@@ -40,10 +40,28 @@ def statio_test_funct(x, timeFrequencyRepresentation, numberOfSurrogates, Nh0):
         MSp = tfrsp_hm(hilbert(x), tt, nFFT, Nh, Mh, tm)
         tfrx = mean_htm5(MSp, opt1)
     
+    # Statistics for the test
     tfr = tfrx[:int(nFFT/2)]
     theta1, Cn_dist, Cn_mean = statio_test_theta(tfr, ttred, opt_dist)
     
-    INS = 1
+    # Computation of Surrogates
+    theta0 = np.zeros((numberOfSurrogates))
+    for i in range(numberOfSurrogates):
+        z = phasemodul(x, Nx)
+        
+        if timeFrequencyRepresentation == "mtfr":
+            MSp = tfrsp_hm(hilbert(z), tt, nFFT, Nh, Mh, tm)
+            tfrz = mean_htm5(MSp, opt1)
+        else:
+            raise Exception(timeFrequencyRepresentation + " Time-frequency representation is not implemented")
+            
+        tfr = tfrz[:int(nFFT/2)]
+        theta0[i], Cn_distz, Cn_meanz = statio_test_theta(tfr, ttred, opt_dist)
+        
+    
+    
+    print("Aqui!")
+    
     return INS
 
 def tfrsp_hm(x, t, nFFT, Nh, M, tm):
@@ -139,8 +157,9 @@ def mean_htm5(S, opt):
 def statio_test_theta(tfr, tt2, opt_dist, a=0, b=0.5):
     l, c = tfr.shape
     Cn_dist = dist_locvsglob(tfr,tt2,opt_dist,a,b)
+    Cn_mean = np.mean(Cn_dist)
+    theta = np.var(Cn_dist)
     
-    print("aqui")
     return theta, Cn_dist, Cn_mean
 
 def dist_locvsglob(S,t,opt2,a=0,b=0.5,Lambda=1):
@@ -168,6 +187,16 @@ def dist_locvsglob(S,t,opt2,a=0,b=0.5,Lambda=1):
             dS[n] = np.multiply( np.sum( np.multiply( ytapSN-ymargSN , np.log( np.divide(ytapSN, ymargSN ) ) )) , 1 + Lambda*np.sum( np.abs( np.log( np.divide(ytapS, ymargS) ) ) ))
 
     return dS
+
+def phasemodul(x, Nx):
+    nFFT = Nx
+    A = np.zeros((nFFT))
+    y = scipy.fft.fft(x, n=nFFT)
+    A[0:int(math.ceil(nFFT/2))] = np.abs(y[0:int(math.ceil(nFFT/2))])
+    phase0 = np.random.uniform(0, 2*np.pi, nFFT)
+    z = np.real(scipy.fft.ifft(2*np.multiply(A, np.exp(1.j*phase0))))
+    
+    return z
 
 def ins(inputData, **kwargs):
     
