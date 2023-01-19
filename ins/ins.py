@@ -8,8 +8,9 @@ Created on Mon Dec 26 15:37:55 2022
 
 import math
 import numpy as np
-from scipy.signal import hilbert
 import scipy.fft
+from scipy.stats import gamma
+from scipy.signal import hilbert
 from . import utils
 
 def statio_test_funct(x, timeFrequencyRepresentation, numberOfSurrogates, Nh0):
@@ -58,9 +59,7 @@ def statio_test_funct(x, timeFrequencyRepresentation, numberOfSurrogates, Nh0):
         tfr = tfrz[:int(nFFT/2)]
         theta0[i], Cn_distz, Cn_meanz = statio_test_theta(tfr, ttred, opt_dist)
         
-    
-    
-    print("Aqui!")
+    INS = np.sqrt(theta1/np.mean(theta0))
     
     return INS
 
